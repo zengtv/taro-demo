@@ -1,11 +1,11 @@
 import '@tarojs/async-await'
 import Taro, { Component } from '@tarojs/taro'
 import { Provider } from '@tarojs/redux'
-import z from './mixins'
+import appIdObj from './app_config'
+import utils from './utils'
+// import z from './mixins'
 import Index from './pages/index'
-
 import configStore from './store'
-
 import './app.less'
 
 // 如果需要在 h5 环境中开启 React Devtools
@@ -20,7 +20,11 @@ class App extends Component {
 
   config = {
     pages: [
-      'pages/index/index'
+      'pages/index/index',
+      'pages/car/index',
+      'pages/wanted/index',
+      'pages/personal/index',
+      'pages/shop_detail/index'
     ],
     window: {
       backgroundTextStyle: 'dark',
@@ -35,34 +39,25 @@ class App extends Component {
       }
     },
   }
-  // 获取当前运行环境
-  _getEnvType() {
-    const ALIPAY = '支付宝'
-    const WEAPP = '微信'
-    const DEFAULT = '客户端'
-    switch (Taro.getEnv()) {
-      case 'ALIPAY':
-        return ALIPAY
-      case 'WEAPP' :
-        return WEAPP
-      default:
-        return DEFAULT
-    }
-  }
-
-  componentDidMount () {
-    Taro.setStorageSync('ENV_TYPE',this._getEnvType())
-    z.showToast(1,'测试标题').then(res=>{
-      console.log('res', res)
+  // 遍历参数 同步存储
+  _mapSetStorageSync(arr) {
+    arr.forEach((item)=>{
+      Taro.setStorageSync(Object.keys(item)[0],item[Object.keys(item)[0]])
     })
-    // 检测小程序是否有新版本更新
-    // if (!Taro.canIUse('getUpdateManager')) {
-    //   Taro.showModal({
-    //     title: '提示',
-    //     confirmColor: '#5BB53C',
-    //     content: `当前${ENV_TYPE}版本过低，无法使用该功能，请升级到最新${ENV_TYPE}版本后重试。`
-    //   })
-    // }
+  }
+  componentDidMount () {
+    const storageInfo = [
+      {ENV_TYPE: utils.getEnvType()},  // 当前运行环境 （微信/支付宝）
+      {isIphoneX: utils.checkIphoneX()}
+    ]
+    // 检测是否是第三方
+    if (typeof(Taro.getExtConfigSync())==='undefined' || !Object.keys(Taro.getExtConfigSync()).length) {
+      storageInfo.push({appId: appIdObj[Taro.getEnv()]['current']}, {isExt: false})
+    }else {
+      const {appId, shopId, isQuickCreate} = Taro.getExtConfigSync().extConfig
+      storageInfo.push({appId}, {shopId}, {isQuickCreate}, {isExt: true})
+    }
+    this._mapSetStorageSync(storageInfo)
   }
 
   componentDidShow () {}
